@@ -3,7 +3,6 @@
 import os
 import logging
 import re
-import datetime
 import wikipedia
 import cohere
 
@@ -39,7 +38,7 @@ def strip_md_heading(text: str) -> str:
     """
     Remove any leading Markdown heading lines:
      • Bold-style headings like **Lesson:**, **Introduction:**, etc.
-     • ATX headings starting with # through ######
+     • ATX headings (# through ######)
     """
     lines = text.splitlines()
     pattern = re.compile(r'^\s*(\*{2}.*\*{2}|#{1,6})')
@@ -85,7 +84,7 @@ def call_cohere(prompt: str) -> str:
     elif hasattr(resp, "text"):
         text = resp.text
     else:
-        raise HTTPException(500, f"Unexpected Cohere response shape: {resp}")
+        raise HTTPException(500, f"Unexpected response: {resp}")
     return text.strip()
 
 # ─── PROMPT ASSEMBLY ───────────────────────────────────────────────────
@@ -100,16 +99,14 @@ def research_steps(question: str) -> str:
 
     prompt += (
         f"You are a seasoned teacher explaining step by step how to {question}.\n"
-        "Begin with a concise introduction explaining the goal and context.\n"
-        "Then provide a clear sequence of numbered steps, using simple examples or analogies.\n"
-        "Finish with a brief summary of the key ideas.\n\n"
-        "Lesson:\n"
+        "Do not include any headings or labels like 'Introduction:' or 'Lesson:'.\n"
+        "Start directly with a numbered list of steps, using simple examples or analogies.\n"
+        "Keep it concise and clear.\n\n"
+        "Steps:\n"
     )
 
     logger.info(f"PROMPT:\n{prompt}\n{'-'*40}")
     raw = call_cohere(prompt)
-
-    # strip any leading Markdown-style heading
     lesson = strip_md_heading(raw)
     logger.info(f"OUTPUT CLEANED:\n{lesson}\n{'='*60}")
     return lesson or "(no text returned)"
