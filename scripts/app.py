@@ -1,9 +1,9 @@
 # scripts/app.py
 
 import os
-import datetime
 import logging
 import re
+import datetime
 import wikipedia
 import cohere
 
@@ -32,15 +32,18 @@ logger.addHandler(fh)
 
 # ─── REQUEST SCHEMA ─────────────────────────────────────────────────────
 class ResearchRequest(BaseModel):
-    text: str = Field(..., description="Ask your how-to question here")
+    text: str = Field(..., description="Your how-to question here")
 
 # ─── HELPERS ────────────────────────────────────────────────────────────
 def strip_md_heading(text: str) -> str:
     """
-    Remove any leading Markdown heading (e.g. **Lesson: …**, #, ##) from the top.
+    Remove any leading Markdown heading lines:
+     • Bold-style headings like **Lesson:**, **Introduction:**, etc.
+     • ATX headings starting with # through ######
     """
     lines = text.splitlines()
-    while lines and re.match(r'\s*(\*{2}Lesson:|\#{1,6})', lines[0]):
+    pattern = re.compile(r'^\s*(\*{2}.*\*{2}|#{1,6})')
+    while lines and pattern.match(lines[0]):
         lines.pop(0)
     return "\n".join(lines).strip()
 
@@ -105,6 +108,8 @@ def research_steps(question: str) -> str:
 
     logger.info(f"PROMPT:\n{prompt}\n{'-'*40}")
     raw = call_cohere(prompt)
+
+    # strip any leading Markdown-style heading
     lesson = strip_md_heading(raw)
     logger.info(f"OUTPUT CLEANED:\n{lesson}\n{'='*60}")
     return lesson or "(no text returned)"
@@ -112,7 +117,7 @@ def research_steps(question: str) -> str:
 # ─── FASTAPI SETUP ─────────────────────────────────────────────────────
 app = FastAPI(
     title="How-To Teacher",
-    description="DuckDuckGo → Wikipedia → Cohere chat"
+    description="DuckDuckGo → Wikipedia → Cohere chat-based how-to lessons"
 )
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
