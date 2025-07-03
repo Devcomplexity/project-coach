@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: how-to-teacher
+    env: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn scripts.app:app --host 0.0.0.0 --port $PORT
+    autoDeploy: true
+    envVars:
+      - key: COHERE_API_KEY
+        fromDatabase: null
